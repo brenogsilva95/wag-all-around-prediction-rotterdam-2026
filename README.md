@@ -1,146 +1,136 @@
 # WAG All-Around Prediction: Rotterdam 2026
 
-## Introdução
+## Introduction
 
-A ginástica artística feminina, especialmente na modalidade de individual geral (All-Around, AA), representa um dos contextos mais complexos de avaliação de desempenho esportivo, pois exige a integração de múltiplas dimensões técnicas em quatro aparelhos distintos: salto (VT), barras assimétricas (UB), trave (BB) e solo (FX). A natureza multidimensional do desempenho, combinada com a variabilidade inerente à execução, torna a previsão de resultados uma tarefa desafiadora, tanto do ponto de vista estatístico quanto esportivo.
+Women's Artistic Gymnastics, particularly the All-Around (AA) event, represents one of the most complex contexts for performance evaluation, as it requires the integration of multiple technical dimensions across four apparatuses: vault (VT), uneven bars (UB), balance beam (BB), and floor exercise (FX).
 
-Nos últimos anos, abordagens baseadas em ciência de dados têm sido amplamente utilizadas para análise de performance e previsão de resultados em esportes (Bunker & Thabtah, 2019; Baio & Blangiardo, 2010). No entanto, há uma lacuna significativa na aplicação dessas técnicas à ginástica artística, especialmente considerando a estrutura de dados disponível, que frequentemente inclui competições com formatos distintos (individual geral vs. finais por aparelho).
+The multidimensional nature of performance, combined with execution variability, makes outcome prediction a challenging task from both statistical and sports perspectives.
 
-Diante disso, este projeto propõe um modelo exploratório de predição para o individual geral feminino na competição de Rotterdam 2026, utilizando dados observados entre 2025 e 2026. A abordagem integra informações provenientes de competições com individual geral e competições por aparelho, buscando capturar simultaneamente desempenho global, forma recente e estabilidade competitiva.
+In recent years, data science approaches have been widely applied to sports analytics. However, there is still a significant gap in applying predictive modeling to highly technical individual sports such as gymnastics.
+
+This project proposes an exploratory statistical model to estimate the probability of victory in the women's All-Around competition at Rotterdam 2026, using data from 2025–2026.
 
 ---
 
-## Materiais
+## Data
 
-A base de dados foi construída manualmente a partir de resultados oficiais e públicos de competições internacionais de ginástica artística feminina (WAG), contemplando o período de 2025 a 2026.
+The dataset was manually constructed from official competition results and includes:
 
-Foram consideradas duas categorias de competições:
+### All-Around Competitions
 
-### Competições com Individual Geral (AA)
+- 2025 World Championships  
+- 2025 Pan-American Championships  
+- 2025 Asian Championships  
+- 2026 City of Jesolo Trophy  
 
-Estas competições fornecem diretamente a variável de interesse (nota final no individual geral):
+### Apparatus-Based Competitions (World Cups)
 
-- Campeonato Mundial de Ginástica Artística 2025  
-- Campeonato Pan-Americano 2025  
-- Campeonato Asiático 2025  
-- City of Jesolo Trophy 2026  
-
-### Competições por Aparelho (World Cups / Challenge Cups)
-
-Estas competições foram utilizadas como proxy de forma recente e desempenho técnico:
-
-- Cottbus World Cup (2025, 2026)  
-- Baku World Cup (2025, 2026)  
+- Cottbus World Cup (2025–2026)  
+- Baku World Cup (2025–2026)  
 - Antalya World Cup 2025  
 - Cairo World Cup 2026  
-- Osijek World Cup (2025, 2026)  
+- Osijek World Cup (2025–2026)  
 - Doha World Cup 2025  
 - Szombathely Challenge Cup 2025  
 
-### Variáveis coletadas
+Each observation includes:
 
-Para cada ginasta, foram registradas:
-
-- Nome  
-- Nacionalidade  
-- Evento  
-- Ano  
-- Notas por aparelho (VT, UB, BB, FX)  
-- Nota de individual geral (AA), quando disponível  
+- Athlete name  
+- Nationality  
+- Competition  
+- Year  
+- Apparatus scores (VT, UB, BB, FX)  
+- All-Around score (when available)  
 
 ---
 
-## Métodos
+## Methods
 
-### Definição da variável de desempenho
+### Performance Variable
 
-A variável de desempenho utilizada no modelo foi definida como:
+The performance metric is defined as:
 
 $$
 y_{ij} =
 \begin{cases}
-AA_{ij}, & \text{se disponível} \\
-\sum_{k \in \{VT, UB, BB, FX\}} s_{ijk}, & \text{se todos os aparelhos disponíveis}
+AA_{ij}, & \text{if available} \\
+\sum_{k \in \{VT, UB, BB, FX\}} s_{ijk}, & \text{otherwise}
 \end{cases}
 $$
 
-onde:
+where:
 
-- $y_{ij}$ representa a nota da ginasta $i$ no evento $j$  
-- $AA_{ij}$ é a nota de individual geral  
-- $s_{ijk}$ representa a nota no aparelho $k$  
-
-Essa construção permite integrar competições heterogêneas, preservando a informação mais relevante quando disponível.
+- $y_{ij}$ is the performance of athlete $i$ in event $j$  
+- $AA_{ij}$ is the All-Around score  
+- $s_{ijk}$ is the score on apparatus $k$  
 
 ---
 
-### Sistema de ponderação
+### Weighting Scheme
 
-Cada observação recebeu um peso definido como:
+Each observation is assigned a weight:
 
 $$
-w_{ij} = w_{\text{evento}} \cdot w_{\text{recência}} \cdot w_{\text{tipo}}
+w_{ij} = w_{\text{event}} \cdot w_{\text{recency}} \cdot w_{\text{type}}
 $$
 
-onde:
+with:
 
-- $w_{\text{evento}}$ depende da relevância da competição:
-  - Mundial = 1.00  
-  - Continental = 0.75  
-  - Internacional = 0.60  
-  - Copa do Mundo = 0.45  
+- Event importance:
+  - World Championships = 1.00  
+  - Continental events = 0.75  
+  - International events = 0.60  
+  - World Cups = 0.45  
 
-- $w_{\text{recência}}$:
+- Recency:
   - 2026 = 1.20  
   - 2025 = 1.00  
 
-- $w_{\text{tipo}}$:
-  - AA real = 1.00  
-  - Soma de aparelhos = 0.70  
+- Data type:
+  - All-Around = 1.00  
+  - Apparatus sum = 0.70  
 
 ---
 
-### Engenharia de atributos
+### Feature Engineering
 
-Para cada ginasta $i$, foram construídas as seguintes variáveis:
+For each athlete $i$:
 
-- Média ponderada:
+**Weighted mean:**
 
 $$
 \mu_i = \frac{\sum_j w_{ij} y_{ij}}{\sum_j w_{ij}}
 $$
 
-- Melhor desempenho:
+**Best score:**
 
 $$
 M_i = \max_j y_{ij}
 $$
 
-- Última observação:
+**Recent performance:**
 
 $$
-L_i = y_{i, t_{\max}}
+L_i = y_{i,t_{\max}}
 $$
 
-- Desvio padrão (instabilidade):
+**Stability (standard deviation):**
 
 $$
 \sigma_i = \sqrt{\frac{1}{n_i} \sum_j (y_{ij} - \mu_i)^2}
 $$
 
-- Forma por aparelho:
+**Apparatus form:**
 
 $$
 A_i = \frac{1}{K} \sum_{k=1}^{K} s_{ik}
 $$
 
-onde $K$ é o número de observações por aparelho.
-
 ---
 
-### Definição do score preditivo
+### Predictive Score
 
-O score projetado foi definido como:
+The final score is defined as:
 
 $$
 S_i =
@@ -153,65 +143,65 @@ S_i =
 \gamma_2 \frac{1}{\sqrt{n_i}}
 $$
 
-onde:
-
-- $n^{AA}_i$ é o número de participações em AA real  
-- $n_i$ é o número total de observações  
-- $\beta_1, \beta_2, \gamma_1, \gamma_2$ são parâmetros empíricos  
-
-Essa formulação é inspirada em modelos de ranking esportivo e avaliação de performance (Glickman, 1999; Hvattum & Arntzen, 2010).
-
 ---
 
-### Conversão para probabilidade
+### Probability Estimation
 
-Os scores foram transformados em probabilidades via função softmax:
+Probabilities are obtained using the softmax function:
 
 $$
 P(i) = \frac{\exp\left(\frac{S_i}{T}\right)}{\sum_j \exp\left(\frac{S_j}{T}\right)}
 $$
 
-onde $T$ é o parâmetro de temperatura.
-
-A função softmax permite interpretar os scores como probabilidades relativas, garantindo normalização e comparabilidade (Bishop, 2006).
+where $T$ is a temperature parameter.
 
 ---
 
-### Interpretação do modelo
+### Interpretation
 
-O modelo combina três dimensões fundamentais:
+The model combines:
 
-1. **Desempenho histórico (AA)**  
-2. **Forma recente (aparelhos)**  
-3. **Estabilidade competitiva (variância)**  
+- Historical performance  
+- Recent form  
+- Performance consistency  
 
-Essa abordagem permite capturar tanto o nível médio quanto o potencial máximo e o risco associado ao desempenho de cada ginasta.
-
----
-
-## Limitações
-
-- Base construída manualmente  
-- Ausência de variáveis como D-score e execução detalhada  
-- Não modela eventos aleatórios (quedas, erros)  
-- Cobertura parcial de competições  
+providing a probabilistic ranking of athletes.
 
 ---
 
-## Conclusão
+## Results
 
-O modelo proposto fornece uma estrutura interpretável e baseada em dados para estimar probabilidades de vitória no individual geral feminino. Ao integrar múltiplas fontes de informação e considerar aspectos como recência e estabilidade, a abordagem contribui para a análise quantitativa de desempenho na ginástica artística.
+The model produces a probabilistic ranking of the top contenders.
+
+The initial projected podium is:
+
+1. Angelina Melnikova (AIN)  
+2. Leanne Wong (USA)  
+3. Kaylia Nemour (ALG)  
 
 ---
 
-## Referências
+## Limitations
 
-- Baio, G., & Blangiardo, M. (2010). Bayesian hierarchical model for the prediction of football results. *Journal of Applied Statistics*.
+- Manually constructed dataset  
+- Limited sample size  
+- No execution/difficulty breakdown  
+- Partial competition coverage  
 
-- Bishop, C. M. (2006). *Pattern Recognition and Machine Learning*. Springer.
+---
 
-- Bunker, R. P., & Thabtah, F. (2019). A machine learning framework for sport result prediction. *Applied Computing and Informatics*.
+## Conclusion
 
-- Glickman, M. E. (1999). Parameter estimation in large dynamic paired comparison experiments. *Journal of the Royal Statistical Society*.
+This work demonstrates how statistical modeling and data science can be applied to a highly complex and underexplored sport.
 
-- Hvattum, L. M., & Arntzen, H. (2010). Using ELO ratings for match result prediction in association football. *International Journal of Forecasting*.
+The proposed approach provides an interpretable and flexible framework for ranking athletes based on performance data.
+
+---
+
+## References
+
+- Baio, G., & Blangiardo, M. (2010). Bayesian hierarchical model for the prediction of football results.  
+- Bishop, C. M. (2006). Pattern Recognition and Machine Learning.  
+- Bunker, R. P., & Thabtah, F. (2019). A machine learning framework for sport result prediction.  
+- Glickman, M. E. (1999). Parameter estimation in paired comparison models.  
+- Hvattum, L. M., & Arntzen, H. (2010). Using ELO ratings for match prediction.  
